@@ -1,5 +1,5 @@
 Prompt trainer to select weights file.
-Tuner - ALL Hyperparameters to take into consideration
+Tuner - ALL Hyperparameters to take into consideration (ask which)
 Cloud training?
 Legend: Key (Predict vs Live)
 API connection to fetch latest data?
@@ -8,6 +8,4 @@ Add training GUI and selection of training data + weights
 Flask webserver? v2?
 
 
-1 - REFINE? ASK AI FOR QUALITY OPINION.
-2 - CONTROL BATCH SIZE TO MAX. Explain system specs and Batch Size.
-3 - MODIFY OUTPUT.PY TO MATCH NEW TRAINING.PY
+1 - GPU Optimization
