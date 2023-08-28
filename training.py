@@ -1,4 +1,5 @@
 # Imports
+import os
 import random
 import glob
 import pandas as pd
@@ -8,11 +9,12 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 
-sequence_length = 25  
+sequence_length = 40  
 state_size = 100
 action_size = 3
 episodes = 1000000
 batch_size = 12
+weights_file = "Weights"
 
 class DQNAgent:
 
@@ -40,17 +42,9 @@ class DQNAgent:
     model.add(Dense(128, activation='elu'))
     model.add(Dense(128, activation='elu'))
     model.add(Dropout(0.5))
-    model.add(Dense(128, activation='leaky_relu'))
-    model.add(Dense(128, activation='leaky_relu'))
-    model.add(Dense(128, activation='leaky_relu'))
-    model.add(Dense(128, activation='leaky_relu'))
-    model.add(Dense(128, activation='elu'))
-    model.add(Dense(128, activation='elu'))
-    model.add(Dense(128, activation='elu'))
-    model.add(Dense(128, activation='elu'))
-    model.add(Dropout(0.5))
+    # More layers if I wish
     model.add(Dense(self.action_size, activation='linear'))
-    model.compile(loss='mse', optimizer=Adam(learning_rate=self.learning_rate))
+    model.compile(loss='mse', optimizer=Adam(learning_rate=self.learning_rate), run_eagerly=False)
     return model
 
   def remember(self, state, action, reward, next_state, done):
@@ -110,12 +104,16 @@ def get_state(data, t, n):
   return res.values[-n:].reshape(batch_size, sequence_length, state_size)
 
 if __name__ == "__main__":
+  
+  os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
+  physical_devices = tf.config.list_physical_devices('GPU') 
+  tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
   df = pd.read_csv('EURUSD_M30.csv', delimiter='\t')
   df.set_index('Time', inplace=True)
   
   agent = DQNAgent(state_size, action_size)
-  #agent.load("dqn_weights.h5")
   
   for e in range(episodes):
     close = df.Close.values
@@ -155,4 +153,5 @@ if __name__ == "__main__":
     agent.replay(batch_size)
     
     if e % 1 == 0: 
-      agent.save("dqn_weights.h5")
+      weights_file_name = weights_file + "-" + str(e) + ".h5"
+      agent.save(weights_file_name)
