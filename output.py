@@ -1,79 +1,66 @@
 # Imports
 import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter, DayLocator, MONDAY  
-from mplfinance.original_flavor import candlestick_ohlc
 import pandas as pd
 import numpy as np
-from training import DQNAgent, preprocess
+from matplotlib.dates import DateFormatter, DayLocator, MONDAY  
+from mplfinance.original_flavor import candlestick_ohlc
+
+from training import DQNAgent, preprocess_data, sequence_length
 
 # Load data
-csv_file_name = 'EURUSD_M30.csv'
-data = pd.read_csv(csv_file_name, delimiter='\t')
-data['Time'] = pd.to_datetime(data['Time'])
-data.set_index('Time', inplace=True)
+df = pd.read_csv('EURUSD_M30.csv', delimiter='\t')
+df.set_index('Time', inplace=True)
 
-# Get last 50 historical candles  
-hist = data.iloc[-100:]
+# Get last 100 historical candles  
+hist = df.iloc[-100:] 
 
-# Make 60 predictions
+# Make 40-candle predictions
 state_size = 100
 action_size = 3
-weights_file = 'dqn_weights.h5'
-
 agent = DQNAgent(state_size, action_size)
-agent.load_weights(weights_file)
+agent.load('Weights-0.h5')
 
-test_state = preprocess(data)[-1:]
-
+state = preprocess_data(df)[-1:]
 open_preds = []
-high_preds = []
+high_preds = [] 
 low_preds = []
 close_preds = []
 
-for i in range(60):
-
-  action = agent.act(test_state)
+for i in range(40):
+    
+  action = agent.act(state)
   
-  open_pred = test_state[0,-1,0]
-  high_pred = test_state[0,-1,1] 
-  low_pred = test_state[0,-1,2]
-  close_pred = test_state[0,-1,3]
+  open_pred = state[0,-1,0]
+  high_pred = state[0,-1,1]
+  low_pred = state[0,-1,2] 
+  close_pred = state[0,-1,3]
 
   open_preds.append(open_pred)
   high_preds.append(high_pred)
   low_preds.append(low_pred)
   close_preds.append(close_pred)
 
-  test_state = np.roll(test_state, -1, axis=1)
+  state = np.roll(state, -1, axis=1) 
 
 # Combine historical and predicted candles
 ohlc = []
 for i in range(len(hist)):
-  ohlc.append([(-100+i), hist.iloc[i]['Open'], hist.iloc[i]['High'],
+  ohlc.append([(-100+i), hist.iloc[i]['Open'], hist.iloc[i]['High'],  
                hist.iloc[i]['Low'], hist.iloc[i]['Close']])
 
 for i in range(len(open_preds)):
-  ohlc.append([i, open_preds[i], high_preds[i],  
-               low_preds[i], close_preds[i]])
+  ohlc.append([i, open_preds[i], high_preds[i], low_preds[i], close_preds[i]])
 
-# Plot candlestick chart
+# Plot candlestick chart  
 fig, ax = plt.subplots()
-
-# Plot historical candles  
 candlestick_ohlc(ax, ohlc[:len(hist)], width=0.5, colorup='k', colordown='gray')
+candlestick_ohlc(ax, ohlc[len(hist):], width=0.5, colorup='g', colordown='r')  
 
-# Plot predicted candles
-candlestick_ohlc(ax, ohlc[len(hist):], width=0.5, colorup='g', colordown='r')
-
-ax.xaxis.set_major_locator(DayLocator(interval=1))
-ax.xaxis.set_minor_locator(DayLocator(interval=1))
-
-ax.set_xlim(-100, 60) 
-ax.set_xticks(range(-100, 60))
-ax.set_xticklabels(range(-100, 60))
-
-ax.set_ylabel('Price')
+ax.set_xlim(-100, 40)
+ax.set_xticks(range(-100, 40))
+ax.set_xticklabels(range(-100, 40))
 ax.set_xlabel('Candle')
-plt.title('Predictions: ' + csv_file_name)
+ax.set_ylabel('Price')
 
+plt.title('Predictions: EURUSD_M30.csv')
 plt.show()
